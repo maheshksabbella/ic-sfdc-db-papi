@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_b35e1174_c80b_4790_9919_4a1058050d41_Output_Variables_toStoreExternalId = Any
+

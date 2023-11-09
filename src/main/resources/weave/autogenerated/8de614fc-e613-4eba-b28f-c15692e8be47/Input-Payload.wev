@@ -1,0 +1,8 @@
+%dw 2.0
+
+type auto_8de614fc_e613_4eba_b28f_c15692e8be47_Input_Payload = {
+  event_type: String, 
+  id: String, 
+  _?: Any
+} {"description": "the input data to create a contact"}
+

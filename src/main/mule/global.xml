@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+	 <http:listener-config name="ic-sfdc-db-papi-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="${https.port}" protocol="HTTPS">
+			<tls:context >
+				<tls:key-store type="jks" path="keystore/server-keystore.jks" keyPassword="${secure::tls.keypassword}" password="${secure::tls.password}" />
+			</tls:context>
+		</http:listener-connection>
+    </http:listener-config>
+    <apikit:config name="ic-sfdc-db-papi-config" api="resource::644e9832-fa62-4f8f-9445-dfd7116eebf7:ic-sfdb-papi:1.0.2:raml:zip:ic-sfdc-db-papi.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="8b03146a-da3a-45fb-b75d-52bcc38140e9" >
+		<salesforce:basic-connection username="${secure::salesforce.username}" password="${secure::salesforce.password}" securityToken="${secure::salesforce.securitytoken}" />
+	</salesforce:sfdc-config>
+	<http:request-config name="HTTP_Request" doc:name="HTTP Request configuration" doc:id="a130bc45-95aa-4abc-b053-2920366ecdcc" >
+		<http:request-connection host="ic-db-sapi0.us-e2.cloudhub.io" protocol="HTTPS" connectionIdleTimeout="300000"/>
+	</http:request-config>
+	
+	<configuration-properties doc:name="Configuration properties" doc:id="cdf1e928-1fc6-450f-821c-1e3f55ae5507" file="properties\config.yaml" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="c5cf7fd7-0d18-45b0-a0ee-542840524cae" file="properties\config.yaml" key="password12345678" />
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="4e65f293-229d-4d17-ae7e-c9ca67374bc4" >
+		<db:my-sql-connection host="${secure::host}" port="${port}" user="${user}" password="${secure::password}" database="${name}" />
+	</db:config>
+	<configuration doc:name="Configuration" doc:id="fa8053ce-5616-4a83-8e5a-a318801059f7" defaultErrorHandler-ref="Error_Handler" />
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="d680b5d8-76a5-4d87-a9b5-1b8b47c2456f" >
+		<http:request-connection protocol="HTTPS" host="ic-sfdc-sapi.us-e2.cloudhub.io"/>
+	</http:request-config>
+	<api-gateway:autodiscovery apiId="${autodiscovery.id}" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="ea617683-f1ca-4601-b3fa-83001a538b22" flowRef="ic-sfdc-db-papi-main" />
+
+		</mule>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd 
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+   
+	<flow name="ic-sfdc-db-papi-main">
+        <http:listener config-ref="ic-sfdc-db-papi-httpListenerConfig" path="/api/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="ic-sfdc-db-papi-config" />
+		<error-handler ref="Error_Handler" />
+    </flow>
+    <flow name="ic-sfdc-db-papi-console">
+        <http:listener config-ref="ic-sfdc-db-papi-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="ic-sfdc-db-papi-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform doc:name="Transform Message">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\sync-contact-db-to-sfdc:application\json:ic-sfdc-db-papi-config">
+        <choice doc:name="Choice" doc:id="b889b7ff-bbe0-4493-990d-cf7e4f184680" >
+			<when expression='#[payload.event_type=="create"]'>
+				<flow-ref doc:name="Flow Reference" doc:id="73de7f14-e9c1-4cf7-85d9-1e89a7cfd5e7" name="createSyncContactDbToSfdc"/>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="Flow Reference" doc:id="954e0dcf-5d12-4222-baeb-14d10bcf7d5f" name="updateSyncContactDbToSfdc"/>
+			</otherwise>
+		</choice>
+    </flow>
+    <flow name="post:\sync-contact-sfdc-to-db:application\json:ic-sfdc-db-papi-config">
+        <choice doc:name="Choice" doc:id="258a4115-3365-4f8b-8f9e-e603cfdb066c" >
+			<when expression='#[payload.event_type=="create"]'>
+				<flow-ref doc:name="Flow Reference" doc:id="4eb8578e-be4f-4fff-9458-d3a79e890126" name="createSyncContactSfdcToDb"/>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="Flow Reference" doc:id="c2433700-5b63-493e-b8d8-55d6b0583fe4" name="updateSyncContactSfdcToDb"/>
+			</otherwise>
+		</choice>
+    </flow>
+</mule>

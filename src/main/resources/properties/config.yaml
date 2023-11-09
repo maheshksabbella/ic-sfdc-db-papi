@@ -1,0 +1,25 @@
+host: "![SxCtFjkZBjCB0rMJWRCnEQ==]"
+port: "3306"
+user: "freedb_Shyam"
+password: "![MUleiYInMMhVBu12G4DSLQ==]"
+name: "freedb_mahesh"
+
+
+
+salesforce:
+ username: "![qJZ6HjZtiC0dpYxmQyJiptOFDxdgDPUIoS0dmu7d6q4=]"
+ password: "![fQrjowPakZHekUK9xaW3fA==]"
+ securitytoken: "![KttTugD6Rxthm1JYjOoB6r7P02DbwzovbOc2iP2YMdM=]"
+ 
+ 
+https:
+ port: "8082"
+ 
+autodiscovery:
+ id: "19097758"
+ 
+tls:
+ keypassword: "![GtWPXnfCuh8Coxj4kZvHfg==]"
+ password: "![GtWPXnfCuh8Coxj4kZvHfg==]"
+ 
+passwordkey: "password12345678"

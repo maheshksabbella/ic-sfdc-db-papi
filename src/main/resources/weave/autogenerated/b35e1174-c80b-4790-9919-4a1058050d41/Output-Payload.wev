@@ -1,0 +1,10 @@
+%dw 2.0
+
+type auto_b35e1174_c80b_4790_9919_4a1058050d41_Output_Payload = {
+  internal_id: Number, 
+  external_id: String, 
+  is_success: Boolean, 
+  errors: Array<Any> {"description": "Errors"}, 
+  _?: Any
+}
+

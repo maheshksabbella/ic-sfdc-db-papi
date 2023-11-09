@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="createSyncContactDbToSfdc" doc:id="ca95f802-d729-40d7-985f-adbf0800f76d" >
+		<set-variable value="#[payload.id]" doc:name="To Store Id" doc:id="41b27871-0d7b-41e1-b77e-1d0e995fc121" variableName="ToStoreId"/>
+		<http:request method="GET" doc:name="Sfdc Get Request" doc:id="7cbb8ad0-f23a-4682-8bba-a02fc33b5fa0" path="/api/contacts/{id}" config-ref="HTTP_Request_configuration" sendCorrelationId="ALWAYS">
+			<http:headers ><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[{
+	"id": payload.id
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="b85cb29b-9e3f-47bd-bbed-b2b707902ab1">
+			<ee:message>
+				<ee:set-payload resource="dwlScripts/mappingPayloadForDb-1.dwl" />
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload[0].last_name]" doc:name="To Store LastName" doc:id="809d0e97-802f-4316-b5c4-8d3e34995b35" variableName="toStoreLastName" />
+		<http:request method="POST" doc:name="Db Post Request" doc:id="b24a7e44-c5ad-442a-a3fd-ad35233705be" config-ref="HTTP_Request" path="/api/contacts" followRedirects="true" sendBodyMode="ALWAYS" requestStreamingMode="ALWAYS" >
+			<error-mapping sourceType="HTTP:BAD_REQUEST" targetType="APP:DB_ERROR" />
+			<http:body ><![CDATA[#[payload[0]]]]></http:body>
+			<http:headers ><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="c6837310-bcb0-4b0b-82aa-ffe1f88cf291" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload.Id]" doc:name="To Store External Id" doc:id="e5bda03e-d9a8-444f-845f-2b63e9932170" variableName="toStoreExternalId" />
+		<choice doc:name="Choice" doc:id="f15ad217-c0bc-4d10-a1a7-908f334625ff" >
+			<when expression="#[payload.is_success==true]">
+				<ee:transform doc:name="Transform Message1" doc:id="86a4b4d0-7db1-42ed-aa68-41a7542b0dbc">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  is_success: true,
+  internal_id: vars.ToStoreId,
+  external_id: vars.toStoreExternalId,
+  errors: []
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<http:request method="PUT" doc:name="Sfdc Put Request" doc:id="ee18a019-43cb-467b-bcdd-b447a1a4bfa2" config-ref="HTTP_Request_configuration" path="/api/contacts/{id}">
+					<http:body ><![CDATA[#[{
+	"last_name": vars.toStoreLastName,
+	
+	 "external_id": vars.toStoreExternalId,
+ "sync_new_record_to_db": "sucess"
+}]]]></http:body>
+					<http:headers ><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+					<http:uri-params ><![CDATA[#[{
+	"id": payload.internal_id
+}]]]></http:uri-params>
+				</http:request>
+				<ee:transform doc:name="Transform Message" doc:id="07321a88-0ec5-4816-9ffa-8f3e48536896">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<ee:transform doc:name="Transform Message" doc:id="21ebb161-29a5-433b-bdba-b14c127fa708" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  is_success: true,
+  internal_id: vars.ToStoreId,
+  external_id: vars.toStoreExternalId,
+  errors: []
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="End Logger" doc:id="f2456a6b-eccf-431f-901b-ede8ed0264f6" message="#[payload]"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="860ec42d-2c2b-4230-a6c6-49f6a52268b8" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[{
+    "is_success": false,
+    "errors": [
+        {
+            "error_code": "DB_ERROR",
+            "error_message": "Duplicate Records Found"
+        }
+    ]
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="updateSyncContactDbToSfdc" doc:id="8de614fc-e613-4eba-b28f-c15692e8be47" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="35825883-1a05-4be0-973d-1a5441430ae5" message="start flow"/>
+		<set-variable value="#[payload.id]" doc:name="To Store Id" doc:id="0f09c05c-af10-41c1-82a6-99a0f22bc31b" variableName="ToStoreId" />
+		<http:request method="GET" doc:name="Sfdc Get Request" doc:id="2892fa28-d5d7-47fe-bd9e-483b4d77a3f5" config-ref="HTTP_Request_configuration" path="/api/contacts/{id}" sendCorrelationId="ALWAYS" >
+			<http:headers ><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[{
+	"id": payload.id
+}]]]></http:uri-params>
+		</http:request>
+		<set-variable value="#[payload[0].external_id]" doc:name="Set Variable" doc:id="bc99fcf1-6909-4d17-aa8f-376408d4d99a" variableName="ExternalId"/>
+		<ee:transform doc:name="Transform Message" doc:id="985f0411-54a0-4cbe-be37-2817988a85ea" >
+			<ee:message >
+				<ee:set-payload resource="dwlScripts/mappingPayloadForDb-2.dwl" />
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload[0].last_name]" doc:name="To Store LastName" doc:id="bdf6b95f-8d12-41d5-aaef-c96c88e0eeff" variableName="toStoreLastName" />
+		<set-variable value='#[payload[0].external_id as Number {format: "##.##"} as String {format: "##"} as Number]' doc:name="To Store External Id" doc:id="87fd0ce4-2ee9-45af-9646-624e6fa6cbbf" variableName="toStoreExternalId"/>
+		<http:request method="PUT" doc:name="Db Put Request" doc:id="2692da9d-e9ac-494f-95ba-31a26a97a2b6" config-ref="HTTP_Request" path="/api/contacts/{id}" followRedirects="true" sendBodyMode="ALWAYS" requestStreamingMode="ALWAYS" >
+			<error-mapping sourceType="HTTP:BAD_REQUEST" targetType="APP:DB_ERROR" />
+			<http:body ><![CDATA[#[payload[0]]]]></http:body>
+			<http:headers ><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[{
+	"id": vars.ExternalId as Number
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="" doc:id="b147c332-13c5-4e26-b6ff-1c58877475e0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="72ddb7ec-c1eb-46e6-9c08-617b4f18c40b" >
+			<when expression="#[payload.is_success==true]" >
+				<ee:transform doc:name="Transform Message" doc:id="531ce154-4441-4ff9-b495-5c4cf8aa9ce7" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  is_success: true,
+  internal_id: vars.ToStoreId,
+  external_id: vars.toStoreExternalId,
+  errors: []
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<http:request method="PUT" doc:name="Sfdc Put Request" doc:id="6a91a17d-a8e6-42ad-9d11-315e51634f76" config-ref="HTTP_Request_configuration" path="/api/contacts/{id}" >
+					<http:body ><![CDATA[#[{
+	"last_name": vars.toStoreLastName,
+	 "external_id": vars.ExternalId as Number,
+ "sync_updated_record_to_db": "sucess"
+}]]]></http:body>
+					<http:headers ><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+					<http:uri-params ><![CDATA[#[{
+	"id": payload.internal_id
+}]]]></http:uri-params>
+				</http:request>
+				<ee:transform doc:name="Transform Message" doc:id="9343a304-80e7-4d2d-bc54-58e4cad40b91" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  is_success: true,
+  internal_id: vars.ToStoreId,
+  external_id: vars.ExternalId as Number,
+  errors: []
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="End Logger" doc:id="7543f309-e9d5-4408-ae53-6f457045a4a0" message="#[payload]"/>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="3c85bd02-adfe-4483-a183-af6c1fb70cd5" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "is_success": false,
+    "errors": [
+        {
+            "error_code": "DB_ERROR",
+            "error_message": "Duplicate Records Found"
+        }
+    ]
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="createSyncContactSfdcToDb" doc:id="0c6c3930-0529-4e79-96da-745906f17928" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="ab31cd8e-88c4-4588-adea-230afba39569" message="start flow"/>
+		<set-variable value="#[payload.id]" doc:name="To Store Id" doc:id="c3dfb1f5-ee28-4222-a8a5-a66a986ea7e5" variableName="ToStoreId" />
+		<http:request method="GET" doc:name="Get Db Request" doc:id="c52c87ed-dbaa-4360-b67d-8d89e8035a7d" config-ref="HTTP_Request" path="/api/contacts/{id}" sendCorrelationId="ALWAYS" >
+			<http:headers ><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+			<http:uri-params ><![CDATA[#[{
+	"id": payload.id
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="Transform Message" doc:id="7a4e6ee6-b8a4-48eb-a05a-a039d5b30e31" >
+			<ee:message >
+				<ee:set-payload resource="dwlScripts/mappingPayloadForSfdc-1.dwl" />
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="Transform Message" doc:id="89f92529-6c98-402a-a9cd-980c51fd76e6" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="store" ><![CDATA[%dw 2.0
+output application/json
+---
+payload[0]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<http:request method="POST" doc:name="Sfdc Post Request" doc:id="2c106655-983f-4dc6-8f8b-02297de9f828" config-ref="HTTP_Request_configuration" path="/api/contacts" followRedirects="true" sendBodyMode="ALWAYS" requestStreamingMode="ALWAYS" sendCorrelationId="ALWAYS">
+			<error-mapping sourceType="HTTP:BAD_REQUEST" targetType="APP:DB_ERROR" />
+			<http:body ><![CDATA[#[payload[0]]]]></http:body>
+			<http:headers ><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+		</http:request>
+		<ee:transform doc:name="" doc:id="4250416b-74be-460e-bb1d-b5ea278ae00a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload.response.payload.id[0]]" doc:name="External Id" doc:id="a104352d-f1f0-4bc9-a505-514e10dac83b" variableName="toStoreExternalId"/>
+		<choice doc:name="Choice" doc:id="b172498b-03ce-4285-af63-a5f92f90820d" >
+			<when expression="#[payload.is_success[0]==true]" >
+				<http:request method="PUT" doc:name="Db Put  Request" doc:id="da48f327-a249-4908-b323-76ce2ef70f2f" config-ref="HTTP_Request" path="/api/contacts/{id}" >
+					<http:body ><![CDATA[#[{
+	"email": vars.store.email,
+	"first_name": vars.store.first_name,
+	"mailing_city": vars.store.mailing_city,
+	"mailing_country": vars.store.mailing_country,
+	"mailing_postal_code": vars.store.mailing_postal_code,
+	"mailing_state": vars.store.mailing_state,
+	"mailing_street": vars.store.mailing_street,
+	"mobile_phone": vars.store.mobile_phone,
+	"other_city": vars.store.other_city,
+	"other_country": vars.store.other_country,
+	"other_state": vars.store.other_state,
+	"other_street": vars.store.other_street,
+	"title": vars.store.title,
+	"sync_updated_record_to_sfdc": false,
+	"last_name": vars.store.last_name,
+	 "external_id": payload.response.payload.id[0],
+ "sync_new_record_to_sfdc": true
+}]]]></http:body>
+					<http:headers ><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+					<http:uri-params ><![CDATA[#[{
+	"id": vars.ToStoreId
+}]]]></http:uri-params>
+				</http:request>
+				<ee:transform doc:name="" doc:id="2e506592-3de7-4dec-9f2c-6a9f4395a24e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  is_success: true,
+  internal_id: vars.ToStoreId,
+  external_id: vars.toStoreExternalId,
+  errors: []
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="End Logger" doc:id="f519bf39-c97d-47ff-a079-b51bc1caa4b8" message="#[payload]" />
+			</when>
+			<otherwise >
+				<ee:transform doc:name="" doc:id="aab2bc8e-5e65-4f02-a3d2-0c05f8c62310" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "is_success": false,
+    "errors": [
+        {
+            "error_code": "DB_ERROR",
+            "error_message": "Duplicate Records Found"
+        }
+    ]
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="updateSyncContactSfdcToDb" doc:id="b35e1174-c80b-4790-9919-4a1058050d41">
+		<logger level="INFO" doc:name="Start Logger" doc:id="f7a1f482-dce6-4e54-9e30-daf27e0709df" message="start flow"/>
+		<set-variable value="#[payload.id]" doc:name="To Store Id" doc:id="16152d6e-568d-4697-b864-0502737fd669" variableName="ToStoreId" />
+		<http:request method="GET" doc:name="Db Get Request" doc:id="d5119f35-809c-48f1-9c6c-f6ffdba6b074" config-ref="HTTP_Request" path="/api/contacts/{id}" sendCorrelationId="ALWAYS">
+			<http:headers><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+			<http:uri-params><![CDATA[#[{
+	"id": payload.id
+}]]]></http:uri-params>
+		</http:request>
+		<set-variable value="#[payload[0].external_id]" doc:name="To Store External Id" doc:id="22e5f3b7-d6f5-4181-9cab-1d41885deb2c" variableName="ExternalId"/>
+		<ee:transform doc:name="Transform Message" doc:id="6dab830d-4c95-44b0-b613-077d4b0cfdc0">
+			<ee:message>
+				<ee:set-payload resource="dwlScripts/mappingPayloadForSfdc-2.dwl" />
+			</ee:message>
+		</ee:transform>
+		<ee:transform doc:name="" doc:id="e185416a-d5c3-4fb8-8381-8e9c209dff5d">
+			<ee:message />
+			<ee:variables>
+				<ee:set-variable variableName="store"><![CDATA[%dw 2.0
+output application/json
+---
+payload[0]]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<http:request method="PUT" doc:name="Sfdc Put Request" doc:id="77f115de-fce8-46d9-b484-b85ad53d92bd" config-ref="HTTP_Request_configuration" path="/api/contacts/{id}" sendCorrelationId="ALWAYS" followRedirects="true" sendBodyMode="ALWAYS" requestStreamingMode="ALWAYS">
+			<error-mapping sourceType="HTTP:BAD_REQUEST" targetType="APP:DB_ERROR" />
+			<http:body><![CDATA[#[payload[0]]]]></http:body>
+			<http:headers><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+			<http:uri-params><![CDATA[#[{
+	"id": vars.ExternalId
+}]]]></http:uri-params>
+		</http:request>
+		<ee:transform doc:name="" doc:id="82ca6cff-3620-4354-bb3b-8f2930505605">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="#[payload.response.payload.id[0]]" doc:name="External Id" doc:id="2874a0cc-57e9-4488-87ba-6114b02e9149" variableName="toStoreExternalId" />
+		<choice doc:name="Choice" doc:id="868561c2-9471-48fe-965a-fa53a79f2203">
+			<when expression="#[payload.is_success[0]==true]">
+				<http:request method="PUT" doc:name="Db Put Request" doc:id="381b0738-a739-4960-8045-1102a9bcfd91" config-ref="HTTP_Request" path="/api/contacts/{id}">
+					<http:body><![CDATA[#[{
+	"email": vars.store.email,
+	"first_name": vars.store.first_name,
+	"mailing_city": vars.store.mailing_city,
+	"mailing_country": vars.store.mailing_country,
+	"mailing_postal_code": vars.store.mailing_postal_code,
+	"mailing_state": vars.store.mailing_state,
+	"mailing_street": vars.store.mailing_street,
+	"mobile_phone": vars.store.mobile_phone,
+	"other_city": vars.store.other_city,
+	"other_country": vars.store.other_country,
+	"other_state": vars.store.other_state,
+	"other_street": vars.store.other_street,
+	"title": vars.store.title,
+	"sync_updated_record_to_sfdc": true,
+	"last_name": vars.store.last_name,
+	 "external_id": payload.response.payload.id[0],
+ "sync_new_record_to_sfdc": true
+}]]]></http:body>
+					<http:headers><![CDATA[#[{
+	"client_id" : "502eec4cfec74bd79a11371b902fd095",
+	"client_secret" : "442B9a34Cd1640D4973735455f92df3b",
+	"x-correlation-id": "jhvxk6"
+}]]]></http:headers>
+					<http:uri-params><![CDATA[#[{
+	"id": vars.ToStoreId
+}]]]></http:uri-params>
+				</http:request>
+				<ee:transform doc:name="" doc:id="cab3ced8-f3dc-4d25-a5f0-3d8407bad238">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  is_success: true,
+  internal_id: vars.ToStoreId,
+  external_id: vars.toStoreExternalId,
+  errors: []
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="End Logger" doc:id="1e76cc76-438e-43e4-8d46-9398188a7a81" message="#[payload]" />
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="3712a731-d7e1-44d2-b8ba-69b25378bc33">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+    "is_success": false,
+    "errors": [
+        {
+            "error_code": "DB_ERROR",
+            "error_message": "Duplicate Records Found"
+        }
+    ]
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
